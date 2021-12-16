@@ -4,6 +4,7 @@ import umontreal.ssj.simevents.*;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -22,46 +23,52 @@ public class ReplayDay {
 	// LES : temps attente du dernier client entree en service
 	// 
 	ArrayList<LinkedList<Customer>> file = new ArrayList<LinkedList<Customer>>();
-	double les[] = new double[8];
+	double les[] = new double[10];
 	//final_list contient les clients deja servis
 	ArrayList<Customer> final_list = new ArrayList<Customer>();
-	final int NUMBER_OF_SERVICES = 9;
-	
+	final int NUMBER_OF_SERVICES = 8;
+	private double lastTime = 0.0; // The last hangup of the day. We will stop the simulation for the day at this moment.
 	public void ReadFileAndCreateCustomer(String file_jour_url) throws IOException {
-		BufferedReader br = new BufferedReader(new FileReader(file_jour_url));
+		
+		BufferedReader br = new BufferedReader(new FileReader(new File("").getAbsolutePath() + "\\" +file_jour_url));
 		
 		String ReadLine = br.readLine();
 		while(ReadLine!=null){
 			ReadLine = br.readLine();
+			// System.out.println(ReadLine);
 			if(ReadLine!=null) {
 				
 				String elements[] = ReadLine.split(",");
 				String date_received = (elements[0]).split(" ")[1];
 				String callType = elements[1];
-				String agentNumber = elements[2];
-				if(!elements[3].equals("NULL")) { // Si un agent a répondu à l'appel.
-					String answered = (elements[3]).split(" ")[1];
-					String hangup = elements[6].split(" ")[1];
-					
-					Customer c = new Customer();
-					c.setCustomer_type(Integer.parseInt(callType));
-					c.setArrival_time(Utils.DateToSecond(date_received));
-					if (answered == "NULL") {
-						c.setBegin_service_time(-1);
-					}else {
-						c.setBegin_service_time(Utils.DateToSecond(answered));
-					}
-					
-					c.setEnd_service_time(Utils.DateToSecond(hangup));
-					c.setWaiting_time(c.getTimeToLeaveQueue());
-					
-					// Prevoir l'evenement arrive du client dans la fils
-					new Arrival(c).schedule(c.arrival_time);
+				String agentNumber = elements[2].replaceAll("\"", "");
+				
+				if(elements[3].equals("NULL")
+						|| elements[3].equals("NA")
+						|| Utils.getKeyFromType(Integer.parseInt(callType)) == -1
+						)
+					continue;
+				
+				String answered = (elements[3]).split(" ")[1];
+				String hangup = elements[6].split(" ")[1];
+				this.lastTime = Utils.DateToSecond(hangup);
+				Customer c = new Customer();
+				c.setCustomer_type(Integer.parseInt(callType));
+				c.setArrival_time(Utils.DateToSecond(date_received));
+				if (answered.equals("NULL")) {
+					c.setBegin_service_time(-1);
+				}else {
+					c.setBegin_service_time(Utils.DateToSecond(answered));
 				}
-
+				
+				c.setEnd_service_time(Utils.DateToSecond(hangup));
+				c.setWaiting_time(c.getTimeToLeaveQueue());
+				
+				// Prevoir l'evenement arrive du client dans la fils
+				new Arrival(c).schedule(c.arrival_time);
+				// System.out.println();
 			}
 		}
-		
 	}
 
 	/**
@@ -69,13 +76,18 @@ public class ReplayDay {
 	 * @param timeHorizon
 	 * @throws IOException 
 	 */
-	public void simulateOneDay(double timeHorizon) throws IOException {
+	public void simulateOneDay(double timeHorizon, String file) throws IOException {
 		Sim.init();
 		this.InitializeQueue();
-       	this.ReadFileAndCreateCustomer("calls-2014-01.csv");
+       	this.ReadFileAndCreateCustomer(file);
+       	new EndOfSim(this).schedule (this.lastTime);
        	Sim.start();
 	}
-	//Arrive du client au niveau de la file
+	/**
+	 * When a customer arrives in the queue
+	 * @author ASUS
+	 *
+	 */
 	class Arrival extends Event{
 		Customer cust;
 		
@@ -86,13 +98,13 @@ public class ReplayDay {
 		
 		@Override
 		public void actions() {
-			//Placer le client au niveau de sa file d'attente
-			for (int i = 0; i < file.size(); i++) {
+			// Update the array that store the queues size
+			for (int i = 0; i < NUMBER_OF_SERVICES; i++) {
 				cust.queues_size[i] = file.get(i).size();
 			}
-			//Recuperer l'index du customer a partir du type
+			// Put the client in his specific queue by getting the number of the queue
+			// from the type of the client
 			int type = Utils.getKeyFromType(cust.getCustomer_type());
-			System.out.println(cust.getCustomer_type());
 			(file.get(type)).add(cust);
 
 			new Depart(cust).schedule(cust.getTimeToLeaveQueue());
@@ -100,7 +112,11 @@ public class ReplayDay {
 		
 	}
 	
-	//Depart de la file
+	/**
+	 * When a customer leaves his queue in order to be served by a server
+	 * @author ASUS
+	 *
+	 */
 	class Depart extends Event{
 		Customer cust = null ;
 		public Depart(Customer c) {
@@ -120,10 +136,14 @@ public class ReplayDay {
 		
 	}
 	
+	/**
+	 * End of service of a specific customer
+	 * @author ASUS
+	 *
+	 */
 	class EndOfService extends Event{
 		Customer cust=null;
 		public EndOfService(Customer c) {
-			// TODO Auto-generated constructor stub
 			cust =c;
 		}
 		@Override
@@ -132,46 +152,36 @@ public class ReplayDay {
 		}
 	}
 	
-	class EndofSim extends Event{
+	/**
+	 * End of the simulation for the day
+	 * @author ASUS
+	 *
+	 */
+	class EndOfSim extends Event{
+		
+		ReplayDay day = null;
+		
+		public EndOfSim(ReplayDay day) {
+			this.day = day;
+		}
 		@Override
 		public void actions() {
+			try {
+				Utils.finalCustomersListToCSV("final.csv", final_list);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 			Sim.stop();
 		}
 	}
 	
+	/**
+	 * Initialize the queues by creating empty LinkedLists
+	 */
 	public void InitializeQueue() {
 		for (int i = 0; i < NUMBER_OF_SERVICES; i++) {
 			file.add(new LinkedList<Customer>());
 		}
-	}
-		
-	public String QueuesSizeToString(Customer c) {
-		String info = "";
-		for (int i = 0; i < c.queues_size.length; i++) {
-			info = info + c.queues_size[i] + ",";
-		}
-		return info;
-	}
-	
-	public void FinalListToCsv(String filename) throws IOException {
-		BufferedWriter bw = new BufferedWriter(new FileWriter(filename));
-		
-		for( Customer c: final_list) {
-			String info_cust = c.getCustomer_type() + ","
-					+ c.getArrival_time() + ","
-					+ QueuesSizeToString(c)
-					+ c.getLes() + ","
-					+ c.getNumber_of_agent() + ","
-					+ c.getWaiting_time();
-			bw.write(info_cust);
-		}
-		
-	}
-	
-	public static void main(String[] args) throws IOException {
-		//Initialize queue
-		ReplayDay simulation = new ReplayDay();
-		simulation.simulateOneDay(10000.0);
 	}
 
 }
