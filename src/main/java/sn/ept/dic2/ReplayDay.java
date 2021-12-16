@@ -23,7 +23,7 @@ public class ReplayDay {
 	// LES : temps attente du dernier client entree en service
 	// 
 	ArrayList<LinkedList<Customer>> file = new ArrayList<LinkedList<Customer>>();
-	double les[] = new double[10];
+	double les[] = new double[8];
 	//final_list contient les clients deja servis
 	ArrayList<Customer> final_list = new ArrayList<Customer>();
 	final int NUMBER_OF_SERVICES = 8;
@@ -46,11 +46,13 @@ public class ReplayDay {
 				if(elements[3].equals("NULL")
 						|| elements[3].equals("NA")
 						|| Utils.getKeyFromType(Integer.parseInt(callType)) == -1
+						|| elements[6].equals("NA")
 						)
 					continue;
 				
 				String answered = (elements[3]).split(" ")[1];
 				String hangup = elements[6].split(" ")[1];
+				
 				this.lastTime = Utils.DateToSecond(hangup);
 				Customer c = new Customer();
 				c.setCustomer_type(Integer.parseInt(callType));
@@ -167,7 +169,9 @@ public class ReplayDay {
 		@Override
 		public void actions() {
 			try {
+				System.out.println("");
 				Utils.finalCustomersListToCSV("final.csv", final_list);
+				ReplayAll.nextDay();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

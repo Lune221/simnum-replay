@@ -57,7 +57,7 @@ public class Utils {
 	
 	
 	public static void finalCustomersListToCSV(String filename, ArrayList<Customer> final_list) throws IOException {
-		BufferedWriter bw = new BufferedWriter(new FileWriter(filename));
+		BufferedWriter bw = new BufferedWriter(new FileWriter(filename, true));
 		
 		for( Customer c: final_list) {
 			String info_cust = 
@@ -68,7 +68,7 @@ public class Utils {
 					+ c.getNumber_of_agent() + ","
 					+ c.getWaiting_time()
 					+ "\n";
-			// bw.append(info_cust);
+			bw.write(info_cust);
 		}
 		bw.close();
 		
@@ -81,7 +81,7 @@ public class Utils {
 	 */
 	public static void writeHeadersToCSV(String filename) throws IOException {
 		BufferedWriter bw = new BufferedWriter(new FileWriter(filename));
-		// Ps : SQX = Size of the Queue X 
+		// Ps : SQX = Size of the Queue X
 		bw.write("CustomerType,ArrivalTime,SQ1,SQ2,SQ3,SQ5,SQ5,SQ6,SQ7,SQ8,LES,NbAgents,WaitingTime\n");
 
 		bw.close();

@@ -5,7 +5,12 @@ import java.io.IOException;
 import sn.ept.dic2.utils.Utils;
 
 public class ReplayAll {
+	
 	static int jour = 0;
+	
+	/**
+	 * For simulating the next day
+	 */
 	public static void nextDay() {
 		if(jour >= 307) return; // Il n' y a que 307 jours dans le dataset
 		jour += 1;
