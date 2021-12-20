@@ -1,9 +1,16 @@
 package sn.ept.dic2.utils;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 import sn.ept.dic2.models.Customer;
 
@@ -47,14 +54,6 @@ public class Utils {
 		return val;
 	}
 	
-	public static String QueuesSizeToString(Customer c) {
-		String info = "";
-		for (int i = 0; i < c.queues_size.length; i++) {
-			info = info + c.queues_size[i] + ",";
-		}
-		return info;
-	}
-	
 	
 	public static void finalCustomersListToCSV(String filename, ArrayList<Customer> final_list) throws IOException {
 		BufferedWriter bw = new BufferedWriter(new FileWriter(filename, true));
@@ -63,10 +62,11 @@ public class Utils {
 			String info_cust = 
 					  c.getCustomer_type() + ","
 					+ c.getArrival_time() + ","
-					+ QueuesSizeToString(c)
+					+ c.getQueueSize() + ","
 					+ c.getLes() + ","
 					+ c.getNumber_of_agent() + ","
-					+ c.getWaiting_time()
+					+ c.getWaiting_time() + ","
+					+ c.getSize_r_vector()
 					+ "\n";
 			bw.write(info_cust);
 		}
@@ -82,9 +82,52 @@ public class Utils {
 	public static void writeHeadersToCSV(String filename) throws IOException {
 		BufferedWriter bw = new BufferedWriter(new FileWriter(filename));
 		// Ps : SQX = Size of the Queue X
-		bw.write("CustomerType,ArrivalTime,SQ1,SQ2,SQ3,SQ5,SQ5,SQ6,SQ7,SQ8,LES,NbAgents,WaitingTime\n");
+		bw.write("CustomerType,ArrivalTime,QueueSize,LES,NbAgents,WaitingTime,l\n");
 
 		bw.close();
 		
 	}
+	
+	/**
+	 * Function for creating the services and the list of agents for the service
+	 * @throws IOException 
+	 */
+	public static HashMap<Integer, Set<Integer>> createServiceList(String file_jour_url) throws IOException {
+		
+		HashMap<Integer, Set<Integer>> matching = new HashMap<Integer, Set<Integer>>();
+		
+		BufferedReader br = new BufferedReader(new FileReader(new File("").getAbsolutePath() + "\\" +file_jour_url));
+		
+		String ReadLine = br.readLine();
+		while(ReadLine!=null){
+			ReadLine = br.readLine();
+			// System.out.println(ReadLine);
+			if(ReadLine!=null) {
+				
+				String elements[] = ReadLine.split(",");
+				String callType = elements[1];
+				String agentNumber = elements[2].replaceAll("\"", "");
+				
+				if(elements[3].equals("NULL")
+						|| elements[3].equals("NA")
+						|| Utils.getKeyFromType(Integer.parseInt(callType)) == -1
+						|| elements[6].equals("NA")
+						)
+					continue;
+				
+				Integer serviceType = Integer.parseInt(callType);
+				Integer agentId = Integer.parseInt(agentNumber);
+				
+				if(!matching.containsKey(serviceType)) {
+					matching.put(serviceType, new HashSet<Integer>());
+				}
+				matching.get(serviceType).add(agentId);
+			}
+		}
+		
+		return matching;
+	}
+	
+	
+	
 }

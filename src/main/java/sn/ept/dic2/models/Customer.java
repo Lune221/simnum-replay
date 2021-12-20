@@ -1,6 +1,7 @@
 package sn.ept.dic2.models;
 
 public class Customer{
+
 	public int customer_type;
 	public double arrival_time;
 	public double begin_service_time;
@@ -9,8 +10,10 @@ public class Customer{
 	public double waiting_time;
 	public double hangup_time;
 	public double les;
-	public int queues_size[] = new int[8]; //stocke la longueur des fils
-	
+	private int queueSize = 0; // The length of his queue
+	private int agentNumber;
+	private int size_r_vector;
+
 	public int getCustomer_type() {
 		return customer_type;
 	}
@@ -54,11 +57,34 @@ public class Customer{
 		this.les = les;
 	} 
 	
+	public int getQueueSize() {
+		return queueSize;
+	}
+	public void setQueueSize(int queueSize) {
+		this.queueSize = queueSize;
+	}
+	
+
+	public int getAgentNumber() {
+		return agentNumber;
+	}
+	public void setAgentNumber(int agentNumber) {
+		this.agentNumber = agentNumber;
+	}
+	
+	public int getSize_r_vector() {
+		return size_r_vector;
+	}
+	public void setSize_r_vector(int size_r_vector) {
+		this.size_r_vector = size_r_vector;
+	}
+	
 	public double getTimeToLeaveQueue() {
 		if (begin_service_time==-1) {
 			return hangup_time - arrival_time;
 		}
 		return begin_service_time - arrival_time;
 	}
+	
 	
 }

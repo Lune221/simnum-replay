@@ -1,6 +1,8 @@
 package sn.ept.dic2;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Set;
 
 import sn.ept.dic2.utils.Utils;
 
@@ -12,7 +14,7 @@ public class ReplayAll {
 	 * For simulating the next day
 	 */
 	public static void nextDay() {
-		if(jour >= 307) return; // Il n' y a que 307 jours dans le dataset
+		if(jour >= 1) return; // Il n' y a que 307 jours dans le dataset
 		jour += 1;
 		
 		ReplayDay simulation = new ReplayDay();
@@ -26,12 +28,14 @@ public class ReplayAll {
 	}
 	
 	public static void main(String[] args) {
+
 		try {
 			Utils.writeHeadersToCSV("final.csv");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		ReplayAll.nextDay();
+		
 	}
 
 }

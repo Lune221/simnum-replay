@@ -9,7 +9,9 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Set;
 
 import sn.ept.dic2.models.Customer;
 import sn.ept.dic2.utils.Utils;
@@ -22,12 +24,17 @@ public class ReplayDay {
 	// longueur des autres files
 	// LES : temps attente du dernier client entree en service
 	// 
-	ArrayList<LinkedList<Customer>> file = new ArrayList<LinkedList<Customer>>();
-	double les[] = new double[8];
+	HashMap<Integer ,LinkedList<Customer>> file = new HashMap<Integer ,LinkedList<Customer>>();
+	
+	HashMap<Integer, Double> les = new HashMap<Integer, Double>();
 	//final_list contient les clients deja servis
 	ArrayList<Customer> final_list = new ArrayList<Customer>();
 	final int NUMBER_OF_SERVICES = 8;
 	private double lastTime = 0.0; // The last hangup of the day. We will stop the simulation for the day at this moment.
+	
+	// Matching between the services and the agents
+	HashMap<Integer, Set<Integer>> matching = new HashMap<Integer, Set<Integer>>();
+	
 	public void ReadFileAndCreateCustomer(String file_jour_url) throws IOException {
 		
 		BufferedReader br = new BufferedReader(new FileReader(new File("").getAbsolutePath() + "\\" +file_jour_url));
@@ -43,6 +50,7 @@ public class ReplayDay {
 				String callType = elements[1];
 				String agentNumber = elements[2].replaceAll("\"", "");
 				
+				
 				if(elements[3].equals("NULL")
 						|| elements[3].equals("NA")
 						|| Utils.getKeyFromType(Integer.parseInt(callType)) == -1
@@ -52,11 +60,14 @@ public class ReplayDay {
 				
 				String answered = (elements[3]).split(" ")[1];
 				String hangup = elements[6].split(" ")[1];
-				
 				this.lastTime = Utils.DateToSecond(hangup);
+				
 				Customer c = new Customer();
 				c.setCustomer_type(Integer.parseInt(callType));
 				c.setArrival_time(Utils.DateToSecond(date_received));
+				c.setAgentNumber(Integer.parseInt(agentNumber));
+				c.setNumber_of_agent(matching.get(Integer.parseInt(callType)).size());
+				
 				if (answered.equals("NULL")) {
 					c.setBegin_service_time(-1);
 				}else {
@@ -67,12 +78,28 @@ public class ReplayDay {
 				c.setWaiting_time(c.getTimeToLeaveQueue());
 				
 				// Prevoir l'evenement arrive du client dans la fils
-				new Arrival(c).schedule(c.arrival_time);
+				new Arrival(c, this).schedule(c.arrival_time);
 				// System.out.println();
 			}
 		}
 	}
-
+	
+	
+	public int getAgentQueuesSize(Integer agentNumber) {
+		
+		int somme = 0;
+		
+		for(Integer service : matching.keySet()) {
+			
+			if(!matching.get(service).contains(agentNumber)) continue;
+			
+			somme += file.get(service).size();
+		}
+		
+		
+		return somme;
+	}
+	
 	/**
 	 * Simulate a day
 	 * @param timeHorizon
@@ -80,11 +107,14 @@ public class ReplayDay {
 	 */
 	public void simulateOneDay(double timeHorizon, String file) throws IOException {
 		Sim.init();
-		this.InitializeQueue();
+       	matching = Utils.createServiceList(file);
        	this.ReadFileAndCreateCustomer(file);
+       	this.InitializeQueue();
+       	this.InitializeLES();
        	new EndOfSim(this).schedule (this.lastTime);
        	Sim.start();
 	}
+	
 	/**
 	 * When a customer arrives in the queue
 	 * @author ASUS
@@ -92,23 +122,20 @@ public class ReplayDay {
 	 */
 	class Arrival extends Event{
 		Customer cust;
-		
-		public Arrival (Customer c) {
+		ReplayDay day;
+		public Arrival (Customer c, ReplayDay day) {
 			cust = c;
+			this.day = day;
 		}
-		
 		
 		@Override
 		public void actions() {
-			// Update the array that store the queues size
-			for (int i = 0; i < NUMBER_OF_SERVICES; i++) {
-				cust.queues_size[i] = file.get(i).size();
-			}
-			// Put the client in his specific queue by getting the number of the queue
-			// from the type of the client
-			int type = Utils.getKeyFromType(cust.getCustomer_type());
-			(file.get(type)).add(cust);
-
+			// Set the length of his queue
+			cust.setQueueSize(file.get(cust.getCustomer_type()).size());
+			cust.setSize_r_vector(day.getAgentQueuesSize(cust.getAgentNumber()));
+			// Put the client in his specific queue 
+			file.get(cust.getCustomer_type()).add(cust);
+			
 			new Depart(cust).schedule(cust.getTimeToLeaveQueue());
 		}
 		
@@ -127,10 +154,9 @@ public class ReplayDay {
 
 		@Override
 		public void actions() {
-			int type = Utils.getKeyFromType(cust.getCustomer_type());
-			file.get(type).remove(cust);
+			file.get(cust.getCustomer_type()).remove(cust);
 			if (cust.getBegin_service_time() != -1) {
-				les[type] = cust.getWaiting_time();
+				les.put(cust.getCustomer_type(), cust.getWaiting_time());
 				new EndOfService(cust).schedule(cust.end_service_time - cust.begin_service_time);
 			}
 				
@@ -169,7 +195,6 @@ public class ReplayDay {
 		@Override
 		public void actions() {
 			try {
-				System.out.println("");
 				Utils.finalCustomersListToCSV("final.csv", final_list);
 				ReplayAll.nextDay();
 			} catch (IOException e) {
@@ -183,8 +208,17 @@ public class ReplayDay {
 	 * Initialize the queues by creating empty LinkedLists
 	 */
 	public void InitializeQueue() {
-		for (int i = 0; i < NUMBER_OF_SERVICES; i++) {
-			file.add(new LinkedList<Customer>());
+		for (Integer service : matching.keySet()) {
+			file.put(service, new LinkedList<Customer>());
+		}
+	}
+	
+	/**
+	 * Initialize the LES hashmap
+	 */
+	public void InitializeLES() {
+		for (Integer service : matching.keySet()) {
+			les.put(service, 0.0);
 		}
 	}
 
