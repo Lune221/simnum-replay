@@ -14,7 +14,7 @@ public class ReplayAll {
 	 * For simulating the next day
 	 */
 	public static void nextDay() {
-		if(jour >= 1) return; // Il n' y a que 307 jours dans le dataset
+		if(jour == 307) return; // There are only 307 days in the dataset
 		jour += 1;
 		
 		ReplayDay simulation = new ReplayDay();

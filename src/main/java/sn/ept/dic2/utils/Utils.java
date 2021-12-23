@@ -26,35 +26,6 @@ public class Utils {
 		return h*3600 + m*60 + s;
 	}
 	
-	// Recupere la cle en fonction du type customer
-	public static int getKeyFromType(int type) {
-		int val = -1;
-		if (type == 30175){
-			val = 0;
-		}else if(type == 30172) {
-			val = 1;
-		}else if(type == 30560) {
-			val = 2;
-		}else if(type == 30181) {
-			val = 3;
-		}else if(type == 30179) {
-			val = 4;
-		}else if(type == 30066) {
-			val = 5;
-		}else if(type == 30241) {
-			val = 6;
-		}else if(type == 30181) {
-			val = 7;
-		}
-		/*
-		if(val == -1) {
-			System.out.println(type);
-		}
-		*/
-		return val;
-	}
-	
-	
 	public static void finalCustomersListToCSV(String filename, ArrayList<Customer> final_list) throws IOException {
 		BufferedWriter bw = new BufferedWriter(new FileWriter(filename, true));
 		
@@ -62,11 +33,11 @@ public class Utils {
 			String info_cust = 
 					  c.getCustomer_type() + ","
 					+ c.getArrival_time() + ","
+					+ c.getSize_r_vector() + ","
 					+ c.getQueueSize() + ","
 					+ c.getLes() + ","
 					+ c.getNumber_of_agent() + ","
-					+ c.getWaiting_time() + ","
-					+ c.getSize_r_vector()
+					+ c.getWaiting_time()
 					+ "\n";
 			bw.write(info_cust);
 		}
@@ -82,7 +53,7 @@ public class Utils {
 	public static void writeHeadersToCSV(String filename) throws IOException {
 		BufferedWriter bw = new BufferedWriter(new FileWriter(filename));
 		// Ps : SQX = Size of the Queue X
-		bw.write("CustomerType,ArrivalTime,QueueSize,LES,NbAgents,WaitingTime,l\n");
+		bw.write("CustomerType,ArrivalTime,RVector,QueueSize,LES,NbAgents,WaitingTime\n");
 
 		bw.close();
 		
@@ -110,7 +81,6 @@ public class Utils {
 				
 				if(elements[3].equals("NULL")
 						|| elements[3].equals("NA")
-						|| Utils.getKeyFromType(Integer.parseInt(callType)) == -1
 						|| elements[6].equals("NA")
 						)
 					continue;

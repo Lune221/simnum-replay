@@ -53,7 +53,6 @@ public class ReplayDay {
 				
 				if(elements[3].equals("NULL")
 						|| elements[3].equals("NA")
-						|| Utils.getKeyFromType(Integer.parseInt(callType)) == -1
 						|| elements[6].equals("NA")
 						)
 					continue;
