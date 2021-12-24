@@ -132,6 +132,7 @@ public class ReplayDay {
 			// Set the length of his queue
 			cust.setQueueSize(file.get(cust.getCustomer_type()).size());
 			cust.setSize_r_vector(day.getAgentQueuesSize(cust.getAgentNumber()));
+			cust.setLes(les.get(cust.getCustomer_type()));
 			// Put the client in his specific queue 
 			file.get(cust.getCustomer_type()).add(cust);
 			
